@@ -1,0 +1,26 @@
+steps:
+  - name: "🔎 test"
+    key: "test"
+    plugins:
+      - docker#v5.11.0:
+          image: "golang:1.23.2"
+          shell: false
+          mount-checkout: true
+          command: ["go", "test", "-v"]
+
+  - name: ":github: release binaries"
+    command: "release"
+    if: build.tag != null
+    depends_on:
+      - "test"
+    plugins:
+      - aws-assume-role-with-web-identity#v1.0.0:
+          role-arn: arn:aws:iam::445615400570:role/pipeline-buildkite-git-credential-ssm
+      - aws-ssm#v1.0.0:
+          parameters:
+            GITHUB_TOKEN: /pipelines/buildkite/git-credential-ssm/github-token
+      - docker#v5.11.0:
+          image: "goreleaser/goreleaser"
+          shell: false
+          environment:
+            - "GITHUB_TOKEN"

@@ -13,6 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
+var version string
+
 type credential struct {
 	protocol string
 	host     string
@@ -32,16 +34,22 @@ func ExitError(e error) {
 
 func main() {
 
-	paramName := flag.String("parameter", "", "Name or arn of the ssm parameter where credentials are stored")
-	local := flag.Bool("default-auth", false, "Use AWS default credential chain, rather than EC2 metadata")
+	paramFlag := flag.String("parameter", "", "Name or arn of the ssm parameter where credentials are stored")
+	localFlag := flag.Bool("default-auth", false, "Use AWS default credential chain, rather than EC2 metadata")
+	versionFlag := flag.Bool("version", false, "Print the version")
 	flag.Parse()
 	args := flag.Args()
+
+	if *versionFlag {
+		fmt.Println(version)
+		os.Exit(0)
+	}
 
 	// Only handles "get" operation (get/store/erase)
 	if len(args) > 0 && args[0] != "get" {
 		os.Exit(0)
 	}
-	if *paramName == "" {
+	if *paramFlag == "" {
 		flag.PrintDefaults()
 		ExitError(fmt.Errorf("missing flag \"parameter\""))
 	}
@@ -49,7 +57,7 @@ func main() {
 	cfg, err := config.LoadDefaultConfig(context.Background())
 
 	var svc *ssm.Client
-	if *local {
+	if *localFlag {
 		if err != nil {
 			ExitError(err)
 		}
@@ -63,7 +71,7 @@ func main() {
 	}
 
 	out, err := svc.GetParameter(context.Background(), &ssm.GetParameterInput{
-		Name:           paramName,
+		Name:           paramFlag,
 		WithDecryption: aws.Bool(true),
 	})
 	if err != nil {

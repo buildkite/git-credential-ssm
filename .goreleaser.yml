@@ -1,0 +1,32 @@
+version: 2
+project_name: git-credential-ssm
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - binary: >-
+      {{ .ProjectName }}_{{ .Os }}_{{ .Arch }}
+    targets:
+      - darwin_arm64
+      - darwin_amd64
+      - linux_amd64
+      - linux_arm64
+    env:
+        - CGO_ENABLED=0
+    flags:
+      - -buildvcs=false
+    ldflags:
+      - -X main.version={{ .Version }}
+archives:
+  - format: gz
+    name_template: >-
+      {{ .ProjectName }}_{{ .Os }}_{{ .Arch }}
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
