@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
-var version string
+var version string = "HEAD"
 
 type credential struct {
 	protocol string
@@ -33,9 +33,8 @@ func ExitError(e error) {
 }
 
 func main() {
-
 	paramFlag := flag.String("parameter", "", "Name or arn of the ssm parameter where credentials are stored")
-	localFlag := flag.Bool("default-auth", false, "Use AWS default credential chain, rather than EC2 metadata")
+	localFlag := flag.Bool("default-credential-chain", false, "Use AWS default credential chain, rather than EC2 metadata endpoint")
 	versionFlag := flag.Bool("version", false, "Print the version")
 	flag.Parse()
 	args := flag.Args()
@@ -45,22 +44,24 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Only handles "get" operation (get/store/erase)
-	if len(args) > 0 && args[0] != "get" {
-		os.Exit(0)
-	}
 	if *paramFlag == "" {
 		flag.PrintDefaults()
 		ExitError(fmt.Errorf("missing flag \"parameter\""))
 	}
 
-	cfg, err := config.LoadDefaultConfig(context.Background())
+	// Only handles "get" operation (get/store/erase)
+	if len(args) > 0 && args[0] != "get" {
+		ExitError(fmt.Errorf("unexpected argument. Only \"get\" is supported"))
+	}
+
+	cfg, err := config.LoadDefaultConfig(context.Background(),
+		conditionalIMDSRegion(!*localFlag))
+	if err != nil {
+		ExitError(err)
+	}
 
 	var svc *ssm.Client
 	if *localFlag {
-		if err != nil {
-			ExitError(err)
-		}
 		svc = ssm.NewFromConfig(cfg)
 	} else {
 		provider := ec2rolecreds.New()
@@ -89,6 +90,13 @@ func main() {
 	// https://git-scm.com/docs/git-credential#IOFMT
 	fmt.Println(cred)
 
+}
+
+func conditionalIMDSRegion(ec2 bool) config.LoadOptionsFunc {
+	if ec2 {
+		return config.WithEC2IMDSRegion()
+	}
+	return func(l *config.LoadOptions) error { return nil }
 }
 
 // parseUrl translates from url format to credential type

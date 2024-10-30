@@ -1,7 +1,7 @@
 # git-credential-ssm
 git credential helper using AWS SSM parameter store.
 
-AWS auth is fetched from EC2 IMDS by default. However you can specify `-default-auth` to use [AWS default credential chain](https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/configure-gosdk.html#specifying-credentials).
+AWS auth is fetched from EC2 IMDS by default. However you can specify `-default-credential-chain` to use [AWS default credential chain](https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/configure-gosdk.html#specifying-credentials).
 
 The credential helper currently only supports the `get` operation.
 
@@ -26,7 +26,7 @@ Run using default AWS credential chain:
 
 ```
 go build
-./git-credential-ssm -parameter /my/parameter -default-auth
+./git-credential-ssm -parameter /my/parameter -default-credential-chain
 ```
 
 Run using EC2 IMDS:
