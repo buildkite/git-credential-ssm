@@ -2,16 +2,27 @@ package main
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestOutput(t *testing.T) {
 	tests := map[string]struct {
-		input    string
-		expected string
+		input       string
+		expected    string
+		expectederr bool
 	}{
 		"basic": {
 			input:    "https://user1:passw123@example.com",
 			expected: "protocol=https\nhost=example.com\nusername=user1\npassword=passw123\n",
+		},
+		"trailing-whitespace": {
+			input:    "https://user1:passw123@example.com\n",
+			expected: "protocol=https\nhost=example.com\nusername=user1\npassword=passw123\n",
+		},
+		"no-username-password": {
+			input:       "not-a-url",
+			expectederr: true,
 		},
 	}
 
@@ -20,14 +31,15 @@ func TestOutput(t *testing.T) {
 
 			out, err := parseUrl(tt.input)
 
-			if err != nil {
-				t.Fatal(err)
+			if tt.expectederr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 
-			if out.String() != tt.expected {
-				t.Errorf("got %s\nwant %s", out.String(), tt.expected)
+			if !tt.expectederr {
+				assert.Equal(t, tt.expected, out.String())
 			}
-
 		})
 	}
 }
