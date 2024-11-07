@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -101,9 +102,16 @@ func conditionalIMDSRegion(ec2 bool) config.LoadOptionsFunc {
 
 // parseUrl translates from url format to credential type
 func parseUrl(s string) (credential, error) {
+	s = strings.TrimSpace(s)
 
 	url, err := url.Parse(s)
+	if err != nil {
+		return credential{}, fmt.Errorf("failed to parse url: %w", err)
+	}
 
+	if url.User.Username() == "" {
+		return credential{}, fmt.Errorf("url is missing username")
+	}
 	pass, ok := url.User.Password()
 	if !ok {
 		return credential{}, fmt.Errorf("url is missing password")
